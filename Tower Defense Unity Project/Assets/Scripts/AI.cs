@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class AI : MonoBehaviour {
 
@@ -19,11 +20,18 @@ public class AI : MonoBehaviour {
         private int xCord, yCord;
     }
 
-    public TurretBlueprint standardTurret;
-    public bool learn;
+    public enum Status
+    {
+        Learn, 
+        Random, 
+        Present
+    };
 
-    BuildManager buildManager;
-    const int SIZE = 16;
+    public TurretBlueprint standardTurret;
+    public Status status;
+
+    private BuildManager buildManager;
+    private const int SIZE = 16;
 
     public static AI instance;
 
@@ -43,8 +51,7 @@ public class AI : MonoBehaviour {
         buildManager = BuildManager.instance;
         buildManager.SelectTurretToBuild(standardTurret);
 
-        //Check if save file have saved data
-        //If so then use that data
+        //If learn then open file
         //Learn from that data or present what you learned
         
     }
@@ -52,9 +59,21 @@ public class AI : MonoBehaviour {
     //When a new wave is spawned, spend money on turrets
     public IEnumerator PrepareForWave()
     {
-        while (BuildRandomTurret())
-            ;
-        yield return new WaitForSeconds(1.0f);
+        if(status == Status.Random)
+        {
+            //Create a new individual with random behavior
+            while (BuildRandomTurret())
+                ;
+            yield return new WaitForSeconds(1.0f);
+        }
+        else if(status == Status.Learn)
+        {
+            //Learn form what has been done before
+        }
+        else if(status == Status.Present)
+        {
+            //Present the best solution
+        }     
     }
 
     //Evaluate the fitness function for this individual
