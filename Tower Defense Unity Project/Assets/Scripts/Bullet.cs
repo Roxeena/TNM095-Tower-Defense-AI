@@ -10,6 +10,8 @@ public class Bullet : MonoBehaviour {
 
 	public float explosionRadius = 0f;
 	public GameObject impactEffect;
+
+    public Turret parent; 
 	
 	public void Seek (Transform _target)
 	{
@@ -73,7 +75,9 @@ public class Bullet : MonoBehaviour {
 
 		if (e != null)
 		{
-			e.TakeDamage(damage);
+            parent.hits++;
+            if (e.TakeDamage(damage))
+                parent.kills++;
 		}
 	}
 

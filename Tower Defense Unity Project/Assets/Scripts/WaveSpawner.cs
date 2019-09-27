@@ -17,7 +17,7 @@ public class WaveSpawner : MonoBehaviour {
 
 	public GameManager gameManager;
 
-	private int waveIndex = 0;
+	public static int waveIndex = 0;
 
 	void Update ()
 	{
@@ -54,7 +54,10 @@ public class WaveSpawner : MonoBehaviour {
 
 		EnemiesAlive = wave.count;
 
-		for (int i = 0; i < wave.count; i++)
+        //Wait for the AI to build its turrets
+        yield return StartCoroutine(AI.instance.PrepareForWave());
+
+        for (int i = 0; i < wave.count; i++)
 		{
 			SpawnEnemy(wave.enemy);
 			yield return new WaitForSeconds(1f / wave.rate);

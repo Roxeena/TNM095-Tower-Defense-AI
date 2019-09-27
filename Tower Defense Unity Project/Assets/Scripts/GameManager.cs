@@ -27,13 +27,15 @@ public class GameManager : MonoBehaviour {
 	void EndGame ()
 	{
 		GameIsOver = true;
+        AI.instance.EvaluateIndividual();
 		gameOverUI.SetActive(true);
 	}
 
 	public void WinLevel ()
 	{
 		GameIsOver = true;
-		completeLevelUI.SetActive(true);
+        AI.instance.EvaluateIndividual();
+        completeLevelUI.SetActive(true);
 	}
 
 }

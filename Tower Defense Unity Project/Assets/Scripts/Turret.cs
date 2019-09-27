@@ -34,6 +34,10 @@ public class Turret : MonoBehaviour {
 
 	public Transform firePoint;
 
+    public int kills = 0;
+    public int shots = 0;
+    public int hits = 0;
+
 	// Use this for initialization
 	void Start () {
 		InvokeRepeating("UpdateTarget", 0f, 0.5f);
@@ -135,8 +139,12 @@ public class Turret : MonoBehaviour {
 		GameObject bulletGO = (GameObject)Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
 		Bullet bullet = bulletGO.GetComponent<Bullet>();
 
-		if (bullet != null)
-			bullet.Seek(target);
+		if (bullet != null) {
+            ++shots;
+            bullet.parent = this;
+            bullet.Seek(target);
+        }
+			
 	}
 
 	void OnDrawGizmosSelected ()
@@ -144,4 +152,13 @@ public class Turret : MonoBehaviour {
 		Gizmos.color = Color.red;
 		Gizmos.DrawWireSphere(transform.position, range);
 	}
+
+    //Evaluate the turrets fittness function
+    public float EvaluateTurret()
+    {
+        if (shots == 0)
+            return 0.0f;
+
+        return hits / shots + kills;
+    }
 }

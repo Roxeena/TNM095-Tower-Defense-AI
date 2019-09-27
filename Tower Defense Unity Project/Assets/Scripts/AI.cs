@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 using System;
+using System.IO;
+using System.Collections;
 
 public class AI : MonoBehaviour {
 
@@ -18,25 +20,60 @@ public class AI : MonoBehaviour {
     }
 
     public TurretBlueprint standardTurret;
+    public bool learn;
 
     BuildManager buildManager;
     const int SIZE = 16;
+
+    public static AI instance;
+
+    void Awake()
+    {
+        //Singleton
+        if (instance != null)
+        {
+            Debug.LogError("More than one AI in scene!");
+            return;
+        }
+        instance = this;
+    }
 
     void Start ()
     {
         buildManager = BuildManager.instance;
         buildManager.SelectTurretToBuild(standardTurret);
 
-        //Build three random turrets
-        //TODO: Taske care of edge case where build turret on same place
-        BuildRandomTurret();
-        BuildRandomTurret();
-        BuildRandomTurret();
+        //Check if save file have saved data
+        //If so then use that data
+        //Learn from that data or present what you learned
+        
     }
 
-    void Update()
+    //When a new wave is spawned, spend money on turrets
+    public IEnumerator PrepareForWave()
     {
-        
+        while (BuildRandomTurret())
+            ;
+        yield return new WaitForSeconds(1.0f);
+    }
+
+    //Evaluate the fitness function for this individual
+    public float EvaluateIndividual()
+    {
+        float result = 0.0f;
+
+        //Loop throught all the turrets and calculate the average fittness over them
+        Turret[] turrets = FindObjectsOfType<Turret>();
+        float sumTurretEval = 0.0f;
+        for(int i = 0; i < turrets.Length; ++i)
+        {
+            sumTurretEval += turrets[i].EvaluateTurret();
+        }
+        result = sumTurretEval / turrets.Length;
+
+        //Add the number of rounds survived
+        result += WaveSpawner.waveIndex;
+        return result;
     }
 
     //Find random point within game grid. Ranom uses min inclusive but max exclusive, hence +1
@@ -45,7 +82,7 @@ public class AI : MonoBehaviour {
         return new Point(UnityEngine.Random.Range(min, max), UnityEngine.Random.Range(min, max));
     }
 
-    void BuildRandomTurret()
+    bool BuildRandomTurret()
     {
         GameObject randomObject;
         Point randomPoint;
@@ -58,15 +95,43 @@ public class AI : MonoBehaviour {
             randomPoint = FindRandomPoint();
             nodeName = "Node" + randomPoint.X() + "x" + randomPoint.Y();
             randomObject = GameObject.Find(nodeName);
-            randomNode = randomObject.GetComponent<Node>();
-            if (randomObject == null) 
+            if (randomObject == null) {
                 Debug.Log("Node: " + nodeName + " NOT found!");
-            else if(randomNode.turret != null)
-                Debug.Log("Turret: " + nodeName + " already built!");
-
-        } while (randomObject == null || randomNode.turret != null);
+                continue;
+            }
+            else {
+                randomNode = randomObject.GetComponent<Node>();
+                if (randomNode.turret != null) {
+                    Debug.Log("Turret: " + nodeName + " already built!");
+                    continue;
+                }
+                else
+                    break;
+            }
+        } while (true);
         
         //Build turret at random node
-        randomNode.BuildTurret(buildManager.GetTurretToBuild());
+        return randomNode.BuildTurret(buildManager.GetTurretToBuild()); 
+    }
+
+    bool BuildTurret(int x, int y)
+    {
+        Point plannedPoint = new Point(x, y);
+        string nodeName = "Node" + plannedPoint.X() + "x" + plannedPoint.Y();
+        GameObject plannedObject = GameObject.Find(nodeName);
+        Node plannedNode;
+
+        if (plannedObject == null) {
+            Debug.Log("Node: " + nodeName + " NOT found!");
+        }
+        else {
+            plannedNode = plannedObject.GetComponent<Node>();
+            if (plannedNode.turret != null) {
+                Debug.Log("Turret: " + nodeName + " already built!");
+            }
+            else
+                return plannedNode.BuildTurret(buildManager.GetTurretToBuild());
+        }
+        return false;
     }
 }

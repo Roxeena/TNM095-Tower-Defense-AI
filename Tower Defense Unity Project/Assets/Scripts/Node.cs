@@ -51,7 +51,7 @@ public class Node : MonoBehaviour {
 		BuildTurret(buildManager.GetTurretToBuild());
 	}
 
-	public void BuildTurret (TurretBlueprint blueprint)
+	public bool BuildTurret (TurretBlueprint blueprint)
 	{
         if (blueprint == null)
             Debug.Log("No turret selected yet!");
@@ -59,7 +59,7 @@ public class Node : MonoBehaviour {
         if (PlayerStats.Money < blueprint.cost)
 		{
 			Debug.Log("Not enough money to build that!");
-			return;
+			return false;
 		}
 
 		PlayerStats.Money -= blueprint.cost;
@@ -73,6 +73,7 @@ public class Node : MonoBehaviour {
 		Destroy(effect, 5f);
 
 		Debug.Log("Turret build!");
+        return true;
 	}
 
 	public void UpgradeTurret ()

@@ -26,7 +26,7 @@ public class Enemy : MonoBehaviour {
 		health = startHealth;
 	}
 
-	public void TakeDamage (float amount)
+	public bool TakeDamage (float amount)
 	{
 		health -= amount;
 
@@ -35,7 +35,9 @@ public class Enemy : MonoBehaviour {
 		if (health <= 0 && !isDead)
 		{
 			Die();
+            return true;
 		}
+        return false;
 	}
 
 	public void Slow (float pct)
