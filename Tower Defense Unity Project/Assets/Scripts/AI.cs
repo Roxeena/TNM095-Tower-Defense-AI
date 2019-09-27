@@ -2,22 +2,42 @@
 using System;
 using System.IO;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
 public class AI : MonoBehaviour {
 
-    struct Point
+    public struct Point
     {
-        public Point(int inX, int inY){
+        public Point(int inX, int inY) {
             xCord = inX;
             yCord = inY;
         }
         public int X() { return xCord; }
         public int Y() { return yCord; }
-        public void SetX(int inX) { xCord = inX; }
-        public void SetY(int inY) { yCord = inY; }
 
         private int xCord, yCord;
+    }
+
+    public struct TurrPoint
+    {
+        public TurrPoint(Turret turr, Point p) {
+            turret = turr;
+            point = p;
+            fittness = 0.0f;
+        }
+        public Point P() { return point; }
+        public Turret Turr() { return turret; }
+        public float Fittness() { Debug.Log("Ret Fittness: " + fittness);  return fittness; }
+        public void SetFittness(float value)
+        {
+            fittness = value;
+            Debug.Log("Set Fittness: " + fittness);    
+        }
+
+        private Turret turret;
+        private Point point;
+        private float fittness;
     }
 
     public enum Status
@@ -29,11 +49,14 @@ public class AI : MonoBehaviour {
 
     public TurretBlueprint standardTurret;
     public Status status;
+    public List<TurrPoint> placedTurrets;
 
     private BuildManager buildManager;
     private const int SIZE = 16;
+    public const int maxIndividuals = 2;
 
     public static AI instance;
+    public static int numIndividuals = 0;
 
     void Awake()
     {
@@ -44,6 +67,7 @@ public class AI : MonoBehaviour {
             return;
         }
         instance = this;
+        Debug.Log("Ind: " + numIndividuals);
     }
 
     void Start ()
@@ -53,6 +77,7 @@ public class AI : MonoBehaviour {
 
         //If learn then open file
         //Learn from that data or present what you learned
+        placedTurrets = new List<TurrPoint>();
         
     }
 
@@ -82,13 +107,16 @@ public class AI : MonoBehaviour {
         float result = 0.0f;
 
         //Loop throught all the turrets and calculate the average fittness over them
-        Turret[] turrets = FindObjectsOfType<Turret>();
         float sumTurretEval = 0.0f;
-        for(int i = 0; i < turrets.Length; ++i)
+        float turretScore = 0.0f;
+        for(int i = 0; i < placedTurrets.Count; ++i)
         {
-            sumTurretEval += turrets[i].EvaluateTurret();
+            turretScore = placedTurrets[i].Turr().EvaluateTurret();
+            placedTurrets.[i].SetFittness(turretScore);
+            Debug.Log("Score: " + placedTurrets[i].Fittness());
+            sumTurretEval += turretScore;
         }
-        result = sumTurretEval / turrets.Length;
+        result = sumTurretEval;
 
         //Add the number of rounds survived
         result += WaveSpawner.waveIndex;
@@ -115,22 +143,28 @@ public class AI : MonoBehaviour {
             nodeName = "Node" + randomPoint.X() + "x" + randomPoint.Y();
             randomObject = GameObject.Find(nodeName);
             if (randomObject == null) {
-                Debug.Log("Node: " + nodeName + " NOT found!");
+                //Debug.Log("Node: " + nodeName + " NOT found!");
                 continue;
             }
             else {
                 randomNode = randomObject.GetComponent<Node>();
                 if (randomNode.turret != null) {
-                    Debug.Log("Turret: " + nodeName + " already built!");
+                    //Debug.Log("Turret: " + nodeName + " already built!");
                     continue;
                 }
                 else
                     break;
             }
         } while (true);
-        
+
         //Build turret at random node
-        return randomNode.BuildTurret(buildManager.GetTurretToBuild()); 
+        if (randomNode.BuildTurret(buildManager.GetTurretToBuild()))
+        {
+            placedTurrets.Add(new TurrPoint(randomNode.turret.GetComponent<Turret>(), randomPoint));
+            return true;
+        }
+        else
+            return false;
     }
 
     bool BuildTurret(int x, int y)
@@ -141,15 +175,24 @@ public class AI : MonoBehaviour {
         Node plannedNode;
 
         if (plannedObject == null) {
-            Debug.Log("Node: " + nodeName + " NOT found!");
+            //Debug.Log("Node: " + nodeName + " NOT found!");
         }
         else {
             plannedNode = plannedObject.GetComponent<Node>();
             if (plannedNode.turret != null) {
-                Debug.Log("Turret: " + nodeName + " already built!");
+                //Debug.Log("Turret: " + nodeName + " already built!");
+                
             }
             else
-                return plannedNode.BuildTurret(buildManager.GetTurretToBuild());
+            {
+                if(plannedNode.BuildTurret(buildManager.GetTurretToBuild()))
+                {
+                    placedTurrets.Add(new TurrPoint(plannedNode.turret.GetComponent<Turret>(), plannedPoint));
+                    return true;
+                }
+                else
+                    return false;
+            }
         }
         return false;
     }

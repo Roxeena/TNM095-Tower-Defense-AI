@@ -58,7 +58,7 @@ public class Node : MonoBehaviour {
 
         if (PlayerStats.Money < blueprint.cost)
 		{
-			Debug.Log("Not enough money to build that!");
+			//Debug.Log("Not enough money to build that!");
 			return false;
 		}
 
@@ -72,7 +72,7 @@ public class Node : MonoBehaviour {
 		GameObject effect = (GameObject)Instantiate(buildManager.buildEffect, GetBuildPosition(), Quaternion.identity);
 		Destroy(effect, 5f);
 
-		Debug.Log("Turret build!");
+		//Debug.Log("Turret build!");
         return true;
 	}
 

@@ -29,22 +29,43 @@ public class GameManager : MonoBehaviour {
 	void EndGame ()
 	{
 		GameIsOver = true;
-        AI.instance.EvaluateIndividual();
+        float fittness = AI.instance.EvaluateIndividual();
 		gameOverUI.SetActive(true);
 
         //Save what learned in file
+        FileManager.instance.SaveProgress(fittness);
         //Restart game and learn more
+        AI.numIndividuals++;
+        if (AI.numIndividuals == AI.maxIndividuals)
+        {
+            #if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+            #else
+                Application.Quit();
+            #endif
+        }
         sceneFader.FadeTo(SceneManager.GetActiveScene().name);
     }
 
 	public void WinLevel ()
 	{
 		GameIsOver = true;
-        AI.instance.EvaluateIndividual();
+        float fittness = AI.instance.EvaluateIndividual();
         completeLevelUI.SetActive(true);
 
         //Save what learned in file
+        FileManager.instance.SaveProgress(fittness);
         //Restart game and learn more
+        AI.numIndividuals++;
+        Debug.Log("Quit Ind: " + AI.numIndividuals);
+        if (AI.numIndividuals == AI.maxIndividuals)
+        {
+            #if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+            #else
+                Application.Quit();
+            #endif
+        }
         sceneFader.FadeTo(SceneManager.GetActiveScene().name);
     }
 
