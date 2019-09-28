@@ -78,7 +78,6 @@ public class AI : MonoBehaviour {
         //If learn then open file
         //Learn from that data or present what you learned
         placedTurrets = new List<TurrPoint>();
-        
     }
 
     //When a new wave is spawned, spend money on turrets
@@ -112,7 +111,7 @@ public class AI : MonoBehaviour {
         for(int i = 0; i < placedTurrets.Count; ++i)
         {
             turretScore = placedTurrets[i].Turr().EvaluateTurret();
-            placedTurrets.[i].SetFittness(turretScore);
+            placedTurrets[i].SetFittness(turretScore);
             Debug.Log("Score: " + placedTurrets[i].Fittness());
             sumTurretEval += turretScore;
         }

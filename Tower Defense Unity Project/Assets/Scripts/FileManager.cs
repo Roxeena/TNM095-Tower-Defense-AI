@@ -23,14 +23,10 @@ public class FileManager : MonoBehaviour {
         instance = this;
     }
 
-    void Start()
-    {
-        OpenFile(fileName); 
-    }
-
     public void SaveProgress(float fittness)
     {
-        if(AI.instance.status == AI.Status.Random)
+        OpenFile(fileName);
+        if (AI.instance.status == AI.Status.Random)
         {
             //Save this new individual in the file
             List<AI.TurrPoint> turrets = AI.instance.placedTurrets;
@@ -39,12 +35,13 @@ public class FileManager : MonoBehaviour {
             for(int i = 0; i < turrets.Count; ++i)
             {
                 //TODO: add zero padding
-                nodeText = "N" + turrets[i].P().X() + "x" + turrets[i].P().Y() + "-"+ turrets[i].Fittness();
+                nodeText = "N" + turrets[i].P().X() + "x" + turrets[i].P().Y() + "-"+ turrets[i].Turr().EvaluateTurret();
                 totalText += nodeText;
             }
             //TODO: add zero padding
             totalText += "E" + fittness;
             WriteText(totalText);
+            CloseFile();
         }
         else if (AI.instance.status == AI.Status.Learn)
         {
@@ -86,17 +83,20 @@ public class FileManager : MonoBehaviour {
         {
             reader = new StreamReader(file);
             writer = null;
-        }
-        
-        
+        } 
+    }
+
+    private void CloseFile()
+    {
+        if (writer != null)
+            writer.Close();
+        if (reader != null)
+            reader.Close();
     }
 
     void OnApplicationQuit()
     {
         Debug.Log("Application ending after " + Time.time + " seconds");
-        if(writer !=null)
-            writer.Close();
-        if (reader != null)
-            reader.Close();
+        CloseFile();
     }
 }
