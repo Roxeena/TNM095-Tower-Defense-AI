@@ -28,45 +28,64 @@ public class GameManager : MonoBehaviour {
 
 	void EndGame ()
 	{
-		GameIsOver = true;
-        float fittness = AI.instance.EvaluateIndividual();
-		gameOverUI.SetActive(true);
-
-        //Save what learned in file
-        FileManager.instance.SaveProgress(fittness);
-        //Restart game and learn more
-        AI.numIndividuals++;
-        if (AI.numIndividuals == AI.maxIndividuals)
-        {
-            #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false;
-            #else
-                Application.Quit();
-            #endif
-        }
+        EndLevel();
+        //gameOverUI.SetActive(true);
         sceneFader.FadeTo(SceneManager.GetActiveScene().name);
     }
 
 	public void WinLevel ()
 	{
-		GameIsOver = true;
-        float fittness = AI.instance.EvaluateIndividual();
-        completeLevelUI.SetActive(true);
-
-        //Save what learned in file
-        FileManager.instance.SaveProgress(fittness);
-        //Restart game and learn more
-        AI.numIndividuals++;
-        Debug.Log("Quit Ind: " + AI.numIndividuals);
-        if (AI.numIndividuals == AI.maxIndividuals)
-        {
-            #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false;
-            #else
-                Application.Quit();
-            #endif
-        }
+        EndLevel();
+        //completeLevelUI.SetActive(true);
         sceneFader.FadeTo(SceneManager.GetActiveScene().name);
+    }
+
+    private void EndLevel()
+    {
+        GameIsOver = true;
+
+        //Evaluate this individual
+        int fittness = AI.instance.EvaluateIndividual();
+
+        //Save what this individual learned in file
+        if (AI.instance.status == AI.Status.Random)
+            FileManager.instance.SaveIndividual(fittness);
+        //Update in the file the evaluation of this individual
+        else if (AI.instance.status == AI.Status.Learn)
+            ;
+
+            //Restart game and let new individual play and be evaluated
+            //TODO: Goes on for ever!
+            ++AI.indNr;
+        Debug.Log("Individual: " + AI.indNr.ToString());
+        if (AI.indNr == AI.populationSize)
+        {
+            Debug.Log("Population Size: " + AI.populationSize.ToString());
+            FileManager.instance.Evolve();
+            ShutDown();
+            /*AI.itteration++;
+            //Stop the AI after a number of iterations or other demand
+            if (AI.itteration == AI.maxIterations)
+            {
+                ShutDown();
+            }
+            //If a new population has been created, evolve that population
+            else
+            {
+                AI.instance.status = AI.Status.Learn;
+                FileManager.instance.Evolve();
+                AI.indNr = 0;
+            }*/
+        }
+    }
+
+    public static void ShutDown()
+    {
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
+            Application.Quit();
+        #endif
     }
 
 }

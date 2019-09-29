@@ -154,11 +154,8 @@ public class Turret : MonoBehaviour {
 	}
 
     //Evaluate the turrets fittness function
-    public float EvaluateTurret()
+    public int EvaluateTurret()
     {
-        if (shots == 0)
-            return 0.0f;
-
-        return hits / shots + kills;
+        return shots;
     }
 }

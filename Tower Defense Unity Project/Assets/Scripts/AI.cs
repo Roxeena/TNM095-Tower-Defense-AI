@@ -21,23 +21,20 @@ public class AI : MonoBehaviour {
 
     public struct TurrPoint
     {
-        public TurrPoint(Turret turr, Point p) {
+        public TurrPoint(Turret turr, Point p, int value = 0) {
             turret = turr;
             point = p;
-            fittness = 0.0f;
+            fittness = value;
         }
         public Point P() { return point; }
         public Turret Turr() { return turret; }
-        public float Fittness() { Debug.Log("Ret Fittness: " + fittness);  return fittness; }
-        public void SetFittness(float value)
-        {
-            fittness = value;
-            Debug.Log("Set Fittness: " + fittness);    
-        }
+        public float Fittness() { return fittness; }
+        public void SetFittness(int value) { fittness = value; }
 
+        //NOTE: Turret can be null if this is a read turrpoint from file
         private Turret turret;
         private Point point;
-        private float fittness;
+        private int fittness;
     }
 
     public enum Status
@@ -53,10 +50,12 @@ public class AI : MonoBehaviour {
 
     private BuildManager buildManager;
     private const int SIZE = 16;
-    public const int maxIndividuals = 2;
+    public const int populationSize = 2;
+    public const int maxIterations = 2;
 
     public static AI instance;
-    public static int numIndividuals = 0;
+    public static int indNr = 0;
+    public static int itteration = 0;
 
     void Awake()
     {
@@ -64,20 +63,32 @@ public class AI : MonoBehaviour {
         if (instance != null)
         {
             Debug.LogError("More than one AI in scene!");
+            Destroy(this);
             return;
         }
         instance = this;
-        Debug.Log("Ind: " + numIndividuals);
+        DontDestroyOnLoad(this);
+        Debug.Log("Start ind: " + indNr.ToString());
+        SceneManager.LoadScene("Level01");
     }
 
     void Start ()
     {
         buildManager = BuildManager.instance;
         buildManager.SelectTurretToBuild(standardTurret);
-
-        //If learn then open file
-        //Learn from that data or present what you learned
         placedTurrets = new List<TurrPoint>();
+
+        //If learn then follow the comands of the individual in the file and evaluate it
+        if(status == Status.Learn)
+        {
+            //TODO!
+        }
+        //Present the best solution
+        else if(status == Status.Present)
+        {
+            //TODO!
+        }
+        //Else act randomly and create a new individual
     }
 
     //When a new wave is spawned, spend money on turrets
@@ -85,37 +96,40 @@ public class AI : MonoBehaviour {
     {
         if(status == Status.Random)
         {
-            //Create a new individual with random behavior
+            //Random new indivudal
+            //Place new random turrets
             while (BuildRandomTurret())
                 ;
             yield return new WaitForSeconds(1.0f);
         }
         else if(status == Status.Learn)
         {
-            //Learn form what has been done before
+            //Follow the comands in the file of this individual
+            //In the end this individual will be evaluated
+            //TODO!
         }
         else if(status == Status.Present)
         {
-            //Present the best solution
+            //Best individual
+            //Build the best turret
+            //TODO!
         }     
     }
 
     //Evaluate the fitness function for this individual
-    public float EvaluateIndividual()
+    public int EvaluateIndividual()
     {
-        float result = 0.0f;
+        int result = 0;
 
         //Loop throught all the turrets and calculate the average fittness over them
-        float sumTurretEval = 0.0f;
-        float turretScore = 0.0f;
+        int turretScore = 0;
         for(int i = 0; i < placedTurrets.Count; ++i)
         {
             turretScore = placedTurrets[i].Turr().EvaluateTurret();
+            //TODO: Replace the turrpoint with a new turrpoint with the fittness
             placedTurrets[i].SetFittness(turretScore);
-            Debug.Log("Score: " + placedTurrets[i].Fittness());
-            sumTurretEval += turretScore;
+            result += turretScore;
         }
-        result = sumTurretEval;
 
         //Add the number of rounds survived
         result += WaveSpawner.waveIndex;
