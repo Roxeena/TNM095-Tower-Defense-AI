@@ -55,6 +55,11 @@ public class WaveSpawner : MonoBehaviour {
 	IEnumerator SpawnWave ()
 	{
 		PlayerStats.Rounds++;
+        if (waveIndex != 0)
+            PlayerStats.Money += 50;
+
+
+
 
 		Wave wave = waves[waveIndex];
 

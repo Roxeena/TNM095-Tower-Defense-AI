@@ -47,11 +47,15 @@ public class AI : MonoBehaviour {
     public TurretBlueprint standardTurret;
     public Status status;
     public List<TurrPoint> placedTurrets;
+    public float crossProb;
+    public float mutationProb;
 
     private BuildManager buildManager;
     private const int SIZE = 16;
-    public const int populationSize = 2;
-    public const int maxIterations = 2;
+    public const int populationSize = 10;
+    public const int maxIterations = 10;
+    private FileManager.Individual commandInduvidual;
+    private int currentTurret = 0;
 
     public static AI instance;
     public static int indNr = 0;
@@ -77,18 +81,12 @@ public class AI : MonoBehaviour {
         buildManager = BuildManager.instance;
         buildManager.SelectTurretToBuild(standardTurret);
         placedTurrets = new List<TurrPoint>();
+    }
 
-        //If learn then follow the comands of the individual in the file and evaluate it
-        if(status == Status.Learn)
-        {
-            //TODO!
-        }
-        //Present the best solution
-        else if(status == Status.Present)
-        {
-            //TODO!
-        }
-        //Else act randomly and create a new individual
+    public void ResetTurrets()
+    {
+        placedTurrets = new List<TurrPoint>();
+        currentTurret = 0;
     }
 
     //When a new wave is spawned, spend money on turrets
@@ -106,7 +104,33 @@ public class AI : MonoBehaviour {
         {
             //Follow the comands in the file of this individual
             //In the end this individual will be evaluated
-            //TODO!
+            bool success = true;
+            if (commandInduvidual == null) {
+                Debug.Log("Comand individual not set!");
+            }
+            else
+            {
+                while (success && currentTurret < commandInduvidual.Turrets().Count)
+                {
+                    //Add mutation
+                    float rand = UnityEngine.Random.Range(0.0f, 1.0f);
+                    if (rand < mutationProb)
+                    {
+                        //Mutate this turret
+                        Debug.Log("Mutate!");
+                        success = BuildRandomTurret();
+                    }
+                    else
+                    {
+                        //Build predefined turret
+                        Debug.Log("Follow the comands");
+                        success = BuildTurret(commandInduvidual.Turrets()[currentTurret].P().X(),
+                        commandInduvidual.Turrets()[currentTurret].P().Y());
+                    }
+                    if (success)
+                        ++currentTurret;
+                }
+            } 
         }
         else if(status == Status.Present)
         {
@@ -114,6 +138,14 @@ public class AI : MonoBehaviour {
             //Build the best turret
             //TODO!
         }     
+    }
+
+    public void SetComands() {
+        commandInduvidual = FileManager.instance.ReadIndividual(indNr);
+        if(commandInduvidual == null)
+        {
+            Debug.Log("Comand individual NOT set!");
+        }
     }
 
     //Evaluate the fitness function for this individual
@@ -132,7 +164,7 @@ public class AI : MonoBehaviour {
         }
 
         //Add the number of rounds survived
-        result += WaveSpawner.waveIndex;
+        result += WaveSpawner.waveIndex * 2;
         return result;
     }
 

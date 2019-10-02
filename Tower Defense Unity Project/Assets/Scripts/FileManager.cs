@@ -7,7 +7,7 @@ public class FileManager : MonoBehaviour {
 
     public class Individual
     {
-        public Individual(List<AI.TurrPoint> nodes, int score)
+        public Individual(List<AI.TurrPoint> nodes, int score = NO_SCORE)
         {
             turrets = nodes;
             fittness = score;
@@ -33,10 +33,12 @@ public class FileManager : MonoBehaviour {
         private float probability;
     }
 
-    public string saveFile;
+    public string evaluatedPopFile;
+    public string newPopFile;
 
     private StreamWriter writer;
     private StreamReader reader;
+    private const int NO_SCORE = 0;
 
     public static FileManager instance;
 
@@ -54,19 +56,27 @@ public class FileManager : MonoBehaviour {
 
     void Start()
     {
-        if(saveFile.Length != 0 && saveFile.EndsWith(".txt"))
-            CheckFile(saveFile);
+        if(evaluatedPopFile.Length != 0 && evaluatedPopFile.EndsWith(".txt"))
+            CheckFile(evaluatedPopFile);
         else
         {
-            Debug.Log("Please enter a .txt file name!");
+            Debug.Log("Please enter a .txt file name for evaluated population!");
+            GameManager.ShutDown();
+        }
+
+        if (newPopFile.Length != 0 && newPopFile.EndsWith(".txt"))
+            CheckFile(newPopFile);
+        else
+        {
+            Debug.Log("Please enter a .txt file name for new population!");
             GameManager.ShutDown();
         }
     }
 
-    public void SaveIndividual(int f)
+    public void SaveCurrentIndividual(int f)
     {
         //Write the current individual to file, creatinga population over time
-        writer = new StreamWriter(saveFile, true);
+        writer = new StreamWriter(evaluatedPopFile, true);
         List<AI.TurrPoint> turrets = AI.instance.placedTurrets;
         string nodeText;
         string totalText = "";
@@ -93,7 +103,7 @@ public class FileManager : MonoBehaviour {
             writer.Close();
     }
 
-    public Individual ReadIndividual()
+    private Individual ReadIndividual()
     {
         string currentInd = reader.ReadLine();
         if(currentInd == null || currentInd.Length == 0)
@@ -111,27 +121,23 @@ public class FileManager : MonoBehaviour {
             //One char in the individual
             if (currentInd[i] == 'x')
             {
-                Debug.Log("Found Point!");
-                posX = currentInd[i - 2] * 10 + currentInd[i - 1];
-                posY = currentInd[i + 1] * 10 + currentInd[i + 2];
+                posX = int.Parse(currentInd[i - 2].ToString() + currentInd[i - 1]);
+                posY = int.Parse(currentInd[i + 1].ToString() + currentInd[i + 2]);
                 i += 3;
             }
             else if (currentInd[i] == '-')
             {
-                Debug.Log("Found score!");
-                score = currentInd[i + 1] * 1000 + currentInd[i + 2] * 100 + currentInd[i + 3] * 10 + currentInd[i + 4];
+                score = int.Parse(currentInd[i + 1].ToString() + currentInd[i + 2] + currentInd[i + 3] + currentInd[i + 4]);
                 i += 5;
             }
             else if (currentInd[i] == 'N')
             {
-                Debug.Log("Found node!");
                 oldTurrets.Add(new AI.TurrPoint(null, new AI.Point(posX, posY), score));
                 i += 3;
             }
             else if (currentInd[i] == 'E')
             {
-                Debug.Log("Found fittness!");
-                fittness = currentInd[i + 1] * 1000 + currentInd[i + 2] * 100 + currentInd[i + 3] * 10 + currentInd[i + 4];
+                fittness = int.Parse(currentInd[i + 1].ToString() + currentInd[i + 2] + currentInd[i + 3] + currentInd[i + 4]);
                 break;
             }
             else
@@ -144,43 +150,86 @@ public class FileManager : MonoBehaviour {
         return new Individual(oldTurrets, fittness);
     }
 
+    public Individual ReadIndividual(int num)
+    {
+        reader = new StreamReader(newPopFile);
+        for (int i = 0; i < num; ++i) {
+            if (ReadIndividual() == null)
+                Debug.Log("End of file reached!");
+        }
+
+        Individual temp = ReadIndividual();
+        
+        if (reader != null)
+            reader.Close();
+        return temp;
+    }
+
     public List<Individual> ReadPopulation()
     {
         //Read the entire save file into a list of individuals
         //One individual is a list of turrnodes and an individual score
-        List<Individual> oldPopulation = new List<Individual>();
-        reader = new StreamReader(saveFile);
+        List<Individual> population = new List<Individual>();
 
         //Read all individuals
+        reader = new StreamReader(evaluatedPopFile);
         Individual ind = ReadIndividual();
         while(ind != null)
         {
-            oldPopulation.Add(ind);
+            population.Add(ind);
             ind = ReadIndividual();
         }
 
         if (reader != null)
             reader.Close();
 
-        return oldPopulation;
+        return population;
     }
 
     public void Evolve()
     {
         List<Individual> population = ReadPopulation();
         List<Individual> selection = new List<Individual>();
+        List<Individual> crossedOver = new List<Individual>();
+
+        /*Debug.Log("Read population: ");
+        for (int i = 0; i < population.Count; i++)
+        {
+            Debug.Log("ind: " + i.ToString());
+            for (int t = 0; t < population[i].Turrets().Count; t++)
+            {
+                Debug.Log(population[i].Turrets()[t].P().X().ToString() + "x" + 
+                    population[i].Turrets()[t].P().X().ToString() + "-" + 
+                    population[i].Turrets()[t].Fittness().ToString());
+            }
+            Debug.Log("E" + population[i].Fittness().ToString());
+        }*/
 
         //Selection
         selection = Selection(population);
 
-
         //CrossOver
-        //Generate the random pairs
+        crossedOver = Crossover(selection);
 
-        //Perform recombination for these pairs
+        //NOTE: Mutation is performed during runtime when the turrets are built
 
-        //Mutation
-        //Fot every turret in this entire population make a few random turrets of them
+        //Save this new population 
+        if(crossedOver.Count < 1) {
+            Debug.Log("Code BLUE!");
+        }
+        else {
+            //Overwrite the old saveFile for not evaluated  population
+            SaveIndividual(crossedOver[0], newPopFile, false);
+
+            for (int i = 1; i < crossedOver.Count; ++i) {
+                SaveIndividual(crossedOver[i], newPopFile);
+            }
+
+            //Clear the save file with evaluated population
+            writer = new StreamWriter(evaluatedPopFile, false);
+            if (writer != null)
+                writer.Close();
+        }
     }
 
     private List<Individual> Selection(List<Individual> population)
@@ -237,7 +286,7 @@ public class FileManager : MonoBehaviour {
                 {
                     //Select this individual
                     selection.Add(population[popProbability[j].Ind()]);
-                    Debug.Log("Selected: " + popProbability[j].Ind().ToString() + " rand: " + rand.ToString());
+                    //Debug.Log("Selected: " + popProbability[j].Ind().ToString() + " rand: " + rand.ToString());
                     break;
                 }
                 //Otherwise if it is less than probability for A + B (ex: 0.79 + 0.15), choose B
@@ -249,6 +298,101 @@ public class FileManager : MonoBehaviour {
         }
 
         return selection;
+    }
+
+    private List<Individual> Crossover(List<Individual> population)
+    {
+        List<Individual> crossedOver = new List<Individual>();
+        
+        //Choose the pairs on how they lie in the list, next to each other
+        if(population.Count < 2) {
+            Debug.Log("To few individuals to preform crossover!");
+        }
+
+        int i = 0;
+        Individual he, she;
+        List<AI.TurrPoint> gTurrets = new List<AI.TurrPoint>(), bTurrets = new List<AI.TurrPoint>();
+        float rand;
+        while(i < population.Count)
+        {
+            //Check boundary
+            if((i + 1) == population.Count)
+            {
+                Debug.Log("Uneven number of individuals!");
+                //Reached end of list and uneven number of individuals
+                //Add the old individual to the new population
+                crossedOver.Add(population[i]);
+            }
+            
+            //Select the pair
+            she = population[i];
+            he = population[i + 1];
+
+            //For every pair there is a probability if crossover should be done or not
+            rand = Random.Range(0.0f, 1.0f);
+            if(rand < AI.instance.crossProb)
+            {
+                //Debug.Log("Performing CrossOver for " + i.ToString() + " - " + (i + 1).ToString());
+                //Perform the crossover
+                int crossPoint = Random.Range(0, Mathf.Min(she.Turrets().Count, he.Turrets().Count));
+
+                //Swap the turrets before the cross Point
+                for (int j = 0; j < crossPoint; ++j) {
+                    gTurrets.Add(he.Turrets()[j]);
+                    bTurrets.Add(she.Turrets()[j]);
+                }
+
+                //Filll up with the remaining turrets
+                for(int j = crossPoint; j < she.Turrets().Count; ++j) {
+                    gTurrets.Add(she.Turrets()[j]);
+                }
+                for (int j = crossPoint; j < he.Turrets().Count; ++j) {
+                    bTurrets.Add(he.Turrets()[j]);
+                }
+
+                //Add the new children to the new population
+                crossedOver.Add(new Individual(gTurrets));
+                crossedOver.Add(new Individual(bTurrets));
+            }
+            else
+            {
+                //Debug.Log("NO CrossOver for " + i.ToString() + " - " + (i + 1).ToString());
+                crossedOver.Add(she);
+                crossedOver.Add(he);
+            }
+            i += 2;
+        }
+        return crossedOver;
+    }
+
+    private void SaveIndividual(Individual ind, string file, bool append = true)
+    {
+        //Write the given individual to file, evolving population over time
+        writer = new StreamWriter(newPopFile, append);
+        List<AI.TurrPoint> turrets = ind.Turrets();
+        string nodeText;
+        string totalText = "";
+        for (int i = 0; i < turrets.Count; ++i)
+        {
+            string xPos = turrets[i].P().X().ToString();
+            string yPos = turrets[i].P().Y().ToString();
+            //TODO: Fix the saving of fittness into a turrpoint
+            string score = turrets[i].Fittness().ToString();
+
+            xPos = xPos.PadLeft(2, '0');
+            yPos = yPos.PadLeft(2, '0');
+            score = score.PadLeft(4, '0');
+
+            nodeText = xPos + "x" + yPos + "-" + score + "N";
+            totalText += nodeText;
+        }
+
+        string fittness = ind.Fittness().ToString();
+        fittness = fittness.PadLeft(4, '0');
+        totalText += "__E" + fittness;
+        writer.WriteLine(totalText);
+        if (writer != null)
+            writer.Close();
     }
 
     private void CheckFile(string file)
