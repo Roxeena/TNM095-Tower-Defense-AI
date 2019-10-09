@@ -49,17 +49,21 @@ public class AI : MonoBehaviour {
     public List<TurrPoint> placedTurrets;
     public float crossProb;
     public float mutationProb;
+    public const int populationSize = 4;
+    public const int maxIterations = 10;
 
     private BuildManager buildManager;
     private const int SIZE = 16;
-    public const int populationSize = 10;
-    public const int maxIterations = 10;
     private FileManager.Individual commandInduvidual;
     private int currentTurret = 0;
+    private int notLearnedCounter = 0;
+    private int oldScore = 0;
+    private int notLearnedItterations = 3;
 
     public static AI instance;
     public static int indNr = 0;
     public static int itteration = 0;
+    public static int maxTurretsPlaced = 0;
 
     void Awake()
     {
@@ -81,6 +85,88 @@ public class AI : MonoBehaviour {
         buildManager = BuildManager.instance;
         buildManager.SelectTurretToBuild(standardTurret);
         placedTurrets = new List<TurrPoint>();
+
+        if (status == Status.Learn)
+            SetComands();
+        if (status == Status.Present){
+            //Read the entire population of previous generation
+            List<FileManager.Individual> population = FileManager.instance.ReadPopulation();
+
+            //Create a heat map
+            HeatMap(population);
+
+            //Find the best individual in the previous generation 
+            int score = 0;
+            int bestInd = -1;
+            for(int i = 0; i < population.Count; ++i) {
+                if (population[i].Fittness() > score) {
+                    score = population[i].Fittness();
+                    bestInd = i;
+                }   
+            }
+
+            //Follow the comands given by the best individual
+            Debug.Log("Best: " + bestInd);
+            SetComands(bestInd);
+        }
+    }
+
+    private void HeatMap(List<FileManager.Individual> population)
+    {
+        //For every node that has had a turret placed on it, 
+        //increment the number of turrets placed on it
+        Point p;
+        string pointName;
+        GameObject pointObject;
+        Node pointNode;
+        for (int i = 0; i < population.Count; ++i)
+        {
+
+            //Find the nodes that had turrets placed on them
+            for (int t = 0; t < population[i].Turrets().Count; ++t)
+            {
+                p = population[i].Turrets()[t].P();
+
+                pointName = "Node" + p.X() + "x" + p.Y();
+                pointObject = GameObject.Find(pointName);
+                if (pointObject == null)
+                {
+                    Debug.Log("WEIRED! Node: " + pointName + " NOT found!");
+                    continue;
+                }
+                else
+                {
+                    //Increment the number of turrets placed on it
+                    pointNode = pointObject.GetComponent<Node>();
+                    pointNode.numTurrets++;
+
+                    //Find the node with the max number of turrets placed, normalizes color
+                    if (pointNode.numTurrets > maxTurretsPlaced)
+                        maxTurretsPlaced = pointNode.numTurrets;
+                }
+            }
+        }
+
+        //Color the nodes based on the occurance of turrets on it
+        for (int i = 1; i < SIZE + 1; ++i)
+        {
+            for (int j = 1; j < SIZE + 1; ++j)
+            {
+                pointName = "Node" + i + "x" + j;
+                pointObject = GameObject.Find(pointName);
+                if (pointObject == null)
+                {
+                    //Debug.Log("WEIRED! 2! Node: " + pointName + " NOT found!");
+                    continue;
+                }
+                else
+                {
+                    pointNode = pointObject.GetComponent<Node>();
+                    //Debug.Log("Node: " + pointName + " Turrets: " + pointNode.numTurrets.ToString());
+                    pointNode.CalculateHeatMapColor();
+                }
+            }
+        }
     }
 
     public void ResetTurrets()
@@ -92,7 +178,8 @@ public class AI : MonoBehaviour {
     //When a new wave is spawned, spend money on turrets
     public IEnumerator PrepareForWave()
     {
-        if(status == Status.Random)
+        //Start with random behaviour
+        if (status == Status.Random)
         {
             //Random new indivudal
             //Place new random turrets
@@ -100,7 +187,8 @@ public class AI : MonoBehaviour {
                 ;
             yield return new WaitForSeconds(1.0f);
         }
-        else if(status == Status.Learn)
+        //Both learning and present follows a comand individual
+        else 
         {
             //Follow the comands in the file of this individual
             //In the end this individual will be evaluated
@@ -112,9 +200,10 @@ public class AI : MonoBehaviour {
             {
                 while (success && currentTurret < commandInduvidual.Turrets().Count)
                 {
+                    //Do not mutate during presentation
                     //Add mutation
                     float rand = UnityEngine.Random.Range(0.0f, 1.0f);
-                    if (rand < mutationProb)
+                    if (status == AI.Status.Learn && rand < mutationProb)
                     {
                         //Mutate this turret
                         Debug.Log("Mutate!");
@@ -127,21 +216,18 @@ public class AI : MonoBehaviour {
                         success = BuildTurret(commandInduvidual.Turrets()[currentTurret].P().X(),
                         commandInduvidual.Turrets()[currentTurret].P().Y());
                     }
+                        
                     if (success)
                         ++currentTurret;
                 }
             } 
-        }
-        else if(status == Status.Present)
-        {
-            //Best individual
-            //Build the best turret
-            //TODO!
-        }     
+        }    
     }
 
-    public void SetComands() {
-        commandInduvidual = FileManager.instance.ReadIndividual(indNr);
+    public void SetComands(int ind = -1) {
+        if (ind == -1)
+            ind = indNr;
+        commandInduvidual = FileManager.instance.ReadIndividual(ind);
         if(commandInduvidual == null)
         {
             Debug.Log("Comand individual NOT set!");
@@ -166,6 +252,39 @@ public class AI : MonoBehaviour {
         //Add the number of rounds survived
         result += WaveSpawner.waveIndex * 2;
         return result;
+    }
+
+    public bool TerminateCheck()
+    {
+        //Read the individuals for this generation
+        List<FileManager.Individual> population = FileManager.instance.ReadPopulation();
+
+        //Calculate the total score for this generation
+        int newScore = 0;
+        for (int i = 0; i < population.Count; i++) {
+            newScore += population[i].Fittness();
+        }
+
+        //If the AI have not improved anything for 3 itterations then terminate
+        if(newScore < oldScore) {
+            Debug.Log("Did not learn anything!");
+            notLearnedCounter++;
+        }
+        else {
+            Debug.Log("Improved!");
+            oldScore = newScore;
+            notLearnedCounter = 0;
+        }
+
+        //Otherwise continue to learn
+        if (notLearnedCounter < notLearnedItterations) {
+            Debug.Log("I need to learn!");
+            return false;
+        }
+
+        //Terminate
+        Debug.Log("Im the best!");
+        return true;
     }
 
     //Find random point within game grid. Ranom uses min inclusive but max exclusive, hence +1

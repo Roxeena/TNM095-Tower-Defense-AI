@@ -16,6 +16,7 @@ public class Node : MonoBehaviour {
 
 	private Renderer rend;
 	private Color startColor;
+    public int numTurrets = 0;
 
 	BuildManager buildManager;
 
@@ -51,6 +52,14 @@ public class Node : MonoBehaviour {
 		BuildTurret(buildManager.GetTurretToBuild());
 	}
 
+    public void CalculateHeatMapColor()
+    {
+        float ratio = (float)numTurrets / (float)AI.maxTurretsPlaced;
+        if (rend == null)
+            rend = GetComponent<Renderer>();
+        rend.material.color = new Color(1.0f - ratio, 1.0f - ratio, 1.0f);
+    }
+
 	public bool BuildTurret (TurretBlueprint blueprint)
 	{
         if (blueprint == null)
@@ -72,7 +81,7 @@ public class Node : MonoBehaviour {
 		GameObject effect = (GameObject)Instantiate(buildManager.buildEffect, GetBuildPosition(), Quaternion.identity);
 		Destroy(effect, 5f);
 
-		//Debug.Log("Turret build!");
+        //Debug.Log("Turret build!");
         return true;
 	}
 

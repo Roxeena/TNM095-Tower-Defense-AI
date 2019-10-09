@@ -75,6 +75,11 @@ public class FileManager : MonoBehaviour {
 
     public void SaveCurrentIndividual(int f)
     {
+        //Do not save the individual after a presentation
+        if (AI.instance.status == AI.Status.Present) {
+            return;
+        } 
+
         //Write the current individual to file, creatinga population over time
         writer = new StreamWriter(evaluatedPopFile, true);
         List<AI.TurrPoint> turrets = AI.instance.placedTurrets;
@@ -188,6 +193,11 @@ public class FileManager : MonoBehaviour {
 
     public void Evolve()
     {
+        //Do not save the individual after a presentation
+        if (AI.instance.status == AI.Status.Present) {
+            return;
+        }
+
         List<Individual> population = ReadPopulation();
         List<Individual> selection = new List<Individual>();
         List<Individual> crossedOver = new List<Individual>();
@@ -266,10 +276,10 @@ public class FileManager : MonoBehaviour {
                 return -1;
         });
 
-        Debug.Log("Individuals after sort: ");
+        /*Debug.Log("Individuals after sort: ");
         for (int i = 0; i < popProbability.Count; i++) {
             Debug.Log("ID: " + popProbability[i].Ind().ToString() + " Prob: " + popProbability[i].Probability().ToString());
-        }
+        }*/
 
         //Select the same amount of individuals as size of population, duplicates may occour
         for (int i = 0; i < popProbability.Count; ++i)

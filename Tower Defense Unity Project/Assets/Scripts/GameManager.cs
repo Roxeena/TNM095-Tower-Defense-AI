@@ -46,6 +46,12 @@ public class GameManager : MonoBehaviour {
     {
         GameIsOver = true;
 
+        //If presented game, shut down
+        if (AI.instance.status == AI.Status.Present) {
+            Debug.Log("Presentation done!");
+            ShutDown();
+        }   
+
         //Evaluate this individual
         int fittness = AI.instance.EvaluateIndividual();
 
@@ -54,19 +60,21 @@ public class GameManager : MonoBehaviour {
         AI.instance.ResetTurrets();
 
         //Restart game and let new individual play and be evaluated
-        //TODO: Goes on for ever!
         ++AI.indNr;
         Debug.Log("Individual: " + AI.indNr.ToString() + " fit: " + fittness.ToString());
-        if(AI.instance.status == AI.Status.Learn)
+
+        //In learning phase set a new comander
+        if (AI.instance.status == AI.Status.Learn)
             AI.instance.SetComands();
+
+        //Check if time to reset or stop
         if (AI.indNr == AI.populationSize)
         {
-            Debug.Log("Population Size: " + AI.populationSize.ToString());
-
             AI.itteration++;
-            Debug.Log("Itterations: " + AI.itteration.ToString());
+            Debug.Log("Itteration: " + AI.itteration.ToString());
             //Stop the AI after a number of iterations or other demand
-            if (AI.itteration == AI.maxIterations) {
+            //TODO: Set a demand for when to stop based on the learning
+            if (AI.itteration == AI.maxIterations || AI.instance.TerminateCheck()) {
                 ShutDown();
             }
             //If a new population has been created, evolve that population
