@@ -60,18 +60,18 @@ public class Node : MonoBehaviour {
         rend.material.color = new Color(1.0f - ratio, 1.0f - ratio, 1.0f);
     }
 
-	public bool BuildTurret (TurretBlueprint blueprint)
+	public void BuildTurret (TurretBlueprint blueprint)
 	{
         if (blueprint == null)
             Debug.Log("No turret selected yet!");
 
-        if (PlayerStats.Money < blueprint.cost)
+        //Always false
+        if (!buildManager.HasMoney)
 		{
 			//Debug.Log("Not enough money to build that!");
-			return false;
 		}
 
-		PlayerStats.Money -= blueprint.cost;
+		//PlayerStats.Money -= blueprint.cost;
 
 		GameObject _turret = (GameObject)Instantiate(blueprint.prefab, GetBuildPosition(), Quaternion.identity);
 		turret = _turret;
@@ -81,8 +81,7 @@ public class Node : MonoBehaviour {
 		GameObject effect = (GameObject)Instantiate(buildManager.buildEffect, GetBuildPosition(), Quaternion.identity);
 		Destroy(effect, 5f);
 
-        //Debug.Log("Turret build!");
-        return true;
+        //Debug.Log("Turret built!");
 	}
 
 	public void UpgradeTurret ()

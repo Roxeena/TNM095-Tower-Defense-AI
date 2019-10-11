@@ -49,7 +49,7 @@ public class AI : MonoBehaviour {
     public List<TurrPoint> placedTurrets;
     public float crossProb;
     public float mutationProb;
-    public const int populationSize = 4;
+    public const int populationSize = 10;
     public const int maxIterations = 10;
 
     private BuildManager buildManager;
@@ -178,50 +178,72 @@ public class AI : MonoBehaviour {
     //When a new wave is spawned, spend money on turrets
     public IEnumerator PrepareForWave()
     {
+        //For every new round the AI is allowed to place only one turret
+        //Except at the start of the game, then it can build three turrets
+
         //Start with random behaviour
         if (status == Status.Random)
         {
             //Random new indivudal
             //Place new random turrets
-            while (BuildRandomTurret())
-                ;
-            yield return new WaitForSeconds(1.0f);
+
+            //In first round place three turrets
+            if (WaveSpawner.waveIndex == 0) {
+                for (int i = 0; i < 3; i++) {
+                    BuildRandomTurret();
+                }
+            }
+            //The other rounds only place one turret
+            else
+                BuildRandomTurret();
+
         }
         //Both learning and present follows a comand individual
         else 
         {
             //Follow the comands in the file of this individual
             //In the end this individual will be evaluated
-            bool success = true;
             if (commandInduvidual == null) {
                 Debug.Log("Comand individual not set!");
             }
             else
             {
-                while (success && currentTurret < commandInduvidual.Turrets().Count)
-                {
-                    //Do not mutate during presentation
-                    //Add mutation
-                    float rand = UnityEngine.Random.Range(0.0f, 1.0f);
-                    if (status == AI.Status.Learn && rand < mutationProb)
-                    {
-                        //Mutate this turret
-                        Debug.Log("Mutate!");
-                        success = BuildRandomTurret();
+                //In first round place three turrets
+                if (WaveSpawner.waveIndex == 0) {
+                    for (int i = 0; i < 3 && currentTurret < commandInduvidual.Turrets().Count; i++) {
+                        PlaceTurret();
+                        ++currentTurret;
+                    }
+                }
+                //The other rounds only place one turret
+                else {
+                    if(currentTurret < commandInduvidual.Turrets().Count) {
+                        PlaceTurret();
+                        ++currentTurret;
                     }
                     else
-                    {
-                        //Build predefined turret
-                        Debug.Log("Follow the comands");
-                        success = BuildTurret(commandInduvidual.Turrets()[currentTurret].P().X(),
-                        commandInduvidual.Turrets()[currentTurret].P().Y());
-                    }
-                        
-                    if (success)
-                        ++currentTurret;
+                        BuildRandomTurret();
                 }
             } 
-        }    
+        }
+
+        yield return new WaitForSeconds(1.0f);
+    }
+
+    private void PlaceTurret()
+    {
+        //Do not mutate during presentation
+        //Add mutation
+        float rand = UnityEngine.Random.Range(0.0f, 1.0f);
+        if (status == AI.Status.Learn && rand < mutationProb) {
+            //Mutate this turret
+            BuildRandomTurret();
+        }
+        else {
+            //Build predefined turret
+            BuildTurret(commandInduvidual.Turrets()[currentTurret].P().X(),
+                commandInduvidual.Turrets()[currentTurret].P().Y());
+        }
     }
 
     public void SetComands(int ind = -1) {
@@ -267,18 +289,15 @@ public class AI : MonoBehaviour {
 
         //If the AI have not improved anything for 3 itterations then terminate
         if(newScore < oldScore) {
-            Debug.Log("Did not learn anything!");
             notLearnedCounter++;
         }
         else {
-            Debug.Log("Improved!");
             oldScore = newScore;
             notLearnedCounter = 0;
         }
 
         //Otherwise continue to learn
         if (notLearnedCounter < notLearnedItterations) {
-            Debug.Log("I need to learn!");
             return false;
         }
 
@@ -293,7 +312,7 @@ public class AI : MonoBehaviour {
         return new Point(UnityEngine.Random.Range(min, max), UnityEngine.Random.Range(min, max));
     }
 
-    bool BuildRandomTurret()
+    private void BuildRandomTurret()
     {
         GameObject randomObject;
         Point randomPoint;
@@ -322,13 +341,9 @@ public class AI : MonoBehaviour {
         } while (true);
 
         //Build turret at random node
-        if (randomNode.BuildTurret(buildManager.GetTurretToBuild()))
-        {
-            placedTurrets.Add(new TurrPoint(randomNode.turret.GetComponent<Turret>(), randomPoint));
-            return true;
-        }
-        else
-            return false;
+        randomNode.BuildTurret(buildManager.GetTurretToBuild());
+        placedTurrets.Add(new TurrPoint(randomNode.turret.GetComponent<Turret>(), randomPoint));
+
     }
 
     bool BuildTurret(int x, int y)
@@ -349,13 +364,8 @@ public class AI : MonoBehaviour {
             }
             else
             {
-                if(plannedNode.BuildTurret(buildManager.GetTurretToBuild()))
-                {
-                    placedTurrets.Add(new TurrPoint(plannedNode.turret.GetComponent<Turret>(), plannedPoint));
-                    return true;
-                }
-                else
-                    return false;
+                plannedNode.BuildTurret(buildManager.GetTurretToBuild());
+                placedTurrets.Add(new TurrPoint(plannedNode.turret.GetComponent<Turret>(), plannedPoint));
             }
         }
         return false;

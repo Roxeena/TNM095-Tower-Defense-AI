@@ -7,14 +7,13 @@ public class GameManager : MonoBehaviour {
 	public static bool GameIsOver;
 
 	public GameObject gameOverUI;
+    public GameObject DebugUI;
 	public GameObject completeLevelUI;
     public SceneFader sceneFader;
 
     void Start ()
 	{
         GameIsOver = false;
-
-        
 	}
 
 	// Update is called once per frame
@@ -61,7 +60,8 @@ public class GameManager : MonoBehaviour {
 
         //Restart game and let new individual play and be evaluated
         ++AI.indNr;
-        Debug.Log("Individual: " + AI.indNr.ToString() + " fit: " + fittness.ToString());
+        DebugUI.GetComponent<MoneyUI>().UpdateText(AI.indNr, AI.itteration + 1, fittness);
+        Debug.Log("Individual: " + AI.indNr.ToString() + " Iteration: " + AI.itteration + " fit: " + fittness.ToString());
 
         //In learning phase set a new comander
         if (AI.instance.status == AI.Status.Learn)

@@ -113,7 +113,7 @@ public class FileManager : MonoBehaviour {
         string currentInd = reader.ReadLine();
         if(currentInd == null || currentInd.Length == 0)
         {
-            Debug.Log("Could NOT read individual!");
+            //Debug.Log("Could NOT read individual!");
             return null;
         }
             
@@ -323,17 +323,8 @@ public class FileManager : MonoBehaviour {
         Individual he, she;
         List<AI.TurrPoint> gTurrets = new List<AI.TurrPoint>(), bTurrets = new List<AI.TurrPoint>();
         float rand;
-        while(i < population.Count)
+        while(i < population.Count - 1)
         {
-            //Check boundary
-            if((i + 1) == population.Count)
-            {
-                Debug.Log("Uneven number of individuals!");
-                //Reached end of list and uneven number of individuals
-                //Add the old individual to the new population
-                crossedOver.Add(population[i]);
-            }
-            
             //Select the pair
             she = population[i];
             he = population[i + 1];
@@ -372,6 +363,16 @@ public class FileManager : MonoBehaviour {
             }
             i += 2;
         }
+
+        //Check boundary
+        if ((i + 1) == population.Count)
+        {
+            Debug.Log("Uneven number of individuals!");
+            //Reached end of list and uneven number of individuals
+            //Add the old individual to the new population
+            crossedOver.Add(population[i]);
+        }
+
         return crossedOver;
     }
 
