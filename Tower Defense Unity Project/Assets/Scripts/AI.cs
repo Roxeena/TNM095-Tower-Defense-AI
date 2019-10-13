@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
+using UnityEditor;
 
 public class AI : MonoBehaviour {
 
@@ -50,7 +51,7 @@ public class AI : MonoBehaviour {
     public float crossProb;
     public float mutationProb;
     public const int populationSize = 10;
-    public const int maxIterations = 10;
+    public const int maxIterations = 15;
 
     private BuildManager buildManager;
     private const int SIZE = 16;
@@ -58,7 +59,7 @@ public class AI : MonoBehaviour {
     private int currentTurret = 0;
     private int notLearnedCounter = 0;
     private int oldScore = 0;
-    private int notLearnedItterations = 3;
+    private int notLearnedItterations = 5;
 
     public static AI instance;
     public static int indNr = 0;
@@ -289,15 +290,20 @@ public class AI : MonoBehaviour {
 
         //If the AI have not improved anything for 3 itterations then terminate
         if(newScore < oldScore) {
+            Debug.Log("NOT Improved: " + (newScore - oldScore));
             notLearnedCounter++;
         }
         else {
+            Debug.Log("Improved: " + (newScore - oldScore));
+            FileUtil.DeleteFileOrDirectory("BestSoFar.txt");
+            FileUtil.CopyFileOrDirectory(FileManager.instance.evaluatedPopFile, "BestSoFar.txt");
             oldScore = newScore;
             notLearnedCounter = 0;
         }
 
         //Otherwise continue to learn
         if (notLearnedCounter < notLearnedItterations) {
+            
             return false;
         }
 

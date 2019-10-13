@@ -157,7 +157,11 @@ public class FileManager : MonoBehaviour {
 
     public Individual ReadIndividual(int num)
     {
-        reader = new StreamReader(newPopFile);
+        if(AI.instance.status == AI.Status.Present)
+            reader = new StreamReader("BestSoFar.txt");
+        else
+            reader = new StreamReader(newPopFile);
+
         for (int i = 0; i < num; ++i) {
             if (ReadIndividual() == null)
                 Debug.Log("End of file reached!");
@@ -177,7 +181,10 @@ public class FileManager : MonoBehaviour {
         List<Individual> population = new List<Individual>();
 
         //Read all individuals
-        reader = new StreamReader(evaluatedPopFile);
+        if(AI.instance.status == AI.Status.Present)
+            reader = new StreamReader("BestSoFar.txt");
+        else
+            reader = new StreamReader(evaluatedPopFile);
         Individual ind = ReadIndividual();
         while(ind != null)
         {
